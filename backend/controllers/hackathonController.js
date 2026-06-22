@@ -13,11 +13,7 @@ const getHackathons = async (req, res) => {
 
 const getHackathon = async (req, res) => {
   try {
-    const hackathon = await Hackathon.findById(req.params.id)
-      .populate({
-        path: 'ideas',
-        populate: { path: 'votes.user comments.user' },
-      });
+    const hackathon = await Hackathon.findById(req.params.id);
 
     if (!hackathon) {
       return res.status(404).json({ message: 'Hackathon not found' });
