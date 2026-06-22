@@ -22,7 +22,7 @@ export default function MainLayout() {
 
       <Navbar onMenuToggle={() => setSidebarOpen(true)} />
 
-      <main className="ml-0 lg:ml-64 pt-16 p-4 md:p-6 min-h-screen">
+      <main className="ml-0 lg:ml-64 pt-16 px-4 md:px-6 pb-4 md:pb-6 min-h-screen">
         <Outlet />
       </main>
     </div>

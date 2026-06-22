@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiBell, FiCheckSquare, FiClock, FiMessageSquare, FiUpload, FiGrid, FiTrash2, FiCheckCircle } from 'react-icons/fi'
+import { FiBell, FiCheck, FiCheckSquare, FiClock, FiMessageSquare, FiUpload, FiGrid, FiTrash2, FiCheckCircle } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../api'
@@ -115,7 +115,7 @@ export default function Notifications() {
             return (
               <div
                 key={notification._id}
-                className={`card flex items-start gap-4 p-4 transition-all duration-200 ${
+                className={`card flex items-start gap-4 p-4 transition-all duration-200 group ${
                   !notification.isRead ? 'border-l-4 border-l-phantom-purple bg-phantom-card/80' : 'border-l-4 border-l-gray-600'
                 }`}
               >
