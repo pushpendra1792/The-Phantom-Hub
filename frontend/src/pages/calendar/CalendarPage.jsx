@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { FiPlus, FiTrash2, FiEdit2, FiCalendar, FiClock, FiFilter, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiPlus, FiTrash2, FiEdit2, FiCalendar, FiClock, FiFilter, FiRefreshCw, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { useQueryClient } from '@tanstack/react-query'
-import { getEvents, createEvent, updateEvent, deleteEvent, getHackathons } from '../../api'
+import { getEvents, createEvent, updateEvent, deleteEvent, syncCalendar, getHackathons } from '../../api'
 import { useEvents, useHackathons, keys } from '../../hooks'
 import CalendarView from '../../components/calendar/CalendarView'
 import Modal from '../../components/ui/Modal'
@@ -60,6 +60,7 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState(null)
   const [form, setForm] = useState(initialForm)
   const [submitting, setSubmitting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event)
@@ -133,6 +134,17 @@ export default function CalendarPage() {
       .finally(() => setSubmitting(false))
   }
 
+  const handleSync = () => {
+    setSyncing(true)
+    syncCalendar()
+      .then((res) => {
+        queryClient.invalidateQueries({ queryKey: keys.events(params) })
+        toast.success(res.data?.message || 'Calendar synced')
+      })
+      .catch(() => toast.error('Failed to sync calendar'))
+      .finally(() => setSyncing(false))
+  }
+
   const handleDelete = (id) => {
     if (!window.confirm('Delete this event?')) return
     deleteEvent(id)
@@ -169,10 +181,16 @@ export default function CalendarPage() {
           <h1 className="text-2xl font-bold text-white">Calendar</h1>
           <p className="text-phantom-gray mt-1">Manage your schedule and events</p>
         </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-          <FiPlus size={16} />
-          Add Event
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleSync} disabled={syncing} className="btn-secondary flex items-center gap-2">
+            <FiRefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Syncing...' : 'Sync'}
+          </button>
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+            <FiPlus size={16} />
+            Add Event
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">

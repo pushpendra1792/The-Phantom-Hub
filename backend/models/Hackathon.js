@@ -51,6 +51,17 @@ const hackathonSchema = new mongoose.Schema({
     ref: 'Idea',
     default: null,
   },
+  rounds: [{
+    name: { type: String, required: true },
+    date: { type: Date, required: true },
+    description: { type: String, default: '' },
+  }],
+  meetings: [{
+    title: { type: String, required: true },
+    date: { type: Date, required: true },
+    description: { type: String, default: '' },
+    location: { type: String, default: '' },
+  }],
 }, {
   timestamps: true,
 });

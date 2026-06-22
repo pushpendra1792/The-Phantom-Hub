@@ -106,6 +106,7 @@ export default function HackathonDetails() {
   const [form, setForm] = useState({
     name: '', organizer: '', website: '', description: '', theme: '', status: 'planning',
     registrationDeadline: '', startDate: '', endDate: '', submissionDeadline: '', githubRepo: '', figmaLink: '',
+    rounds: [], meetings: [],
   })
 
   const [taskForm, setTaskForm] = useState({
@@ -126,6 +127,19 @@ export default function HackathonDetails() {
       endDate: h.endDate ? h.endDate.slice(0, 10) : '',
       submissionDeadline: h.submissionDeadline ? h.submissionDeadline.slice(0, 10) : '',
       githubRepo: h.githubRepo || '', figmaLink: h.figmaLink || '',
+      rounds: h.rounds ? h.rounds.map((r) => ({
+        _id: r._id,
+        name: r.name || '',
+        date: r.date ? r.date.slice(0, 10) : '',
+        description: r.description || '',
+      })) : [],
+      meetings: h.meetings ? h.meetings.map((m) => ({
+        _id: m._id,
+        title: m.title || '',
+        date: m.date ? m.date.slice(0, 10) : '',
+        description: m.description || '',
+        location: m.location || '',
+      })) : [],
     })
   }, [])
 
@@ -463,6 +477,42 @@ export default function HackathonDetails() {
         </div>
       )}
 
+      {activeTab === 'Overview' && hackathon.rounds?.length > 0 && (
+        <div className="card space-y-3">
+          <h3 className="text-base font-semibold text-white">Rounds</h3>
+          <div className="space-y-2">
+            {hackathon.rounds.map((round, i) => (
+              <div key={round._id || i} className="flex items-center justify-between p-3 rounded-lg bg-phantom-dark">
+                <div>
+                  <p className="text-sm font-medium text-white">{round.name}</p>
+                  <p className="text-xs text-phantom-gray">{round.date ? format(new Date(round.date), 'MMM d, yyyy') : ''}{round.description ? ` - ${round.description}` : ''}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'Overview' && hackathon.meetings?.length > 0 && (
+        <div className="card space-y-3">
+          <h3 className="text-base font-semibold text-white">Group Meetings</h3>
+          <div className="space-y-2">
+            {hackathon.meetings.map((meeting, i) => (
+              <div key={meeting._id || i} className="flex items-center justify-between p-3 rounded-lg bg-phantom-dark">
+                <div>
+                  <p className="text-sm font-medium text-white">{meeting.title}</p>
+                  <p className="text-xs text-phantom-gray">
+                    {meeting.date ? format(new Date(meeting.date), 'MMM d, yyyy') : ''}
+                    {meeting.location ? ` at ${meeting.location}` : ''}
+                    {meeting.description ? ` - ${meeting.description}` : ''}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {activeTab === 'Ideas' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -667,7 +717,7 @@ export default function HackathonDetails() {
                                     description: task.description || '',
                                     status: task.status || 'backlog',
                                     priority: task.priority || 'medium',
-                                    assignee: task.assignee || '',
+                                    assignee: task.assignee?._id || '',
                                     deadline: task.deadline ? task.deadline.slice(0, 10) : '',
                                     labels: task.labels || [],
                                   })
@@ -897,6 +947,95 @@ export default function HackathonDetails() {
               <input name="figmaLink" value={form.figmaLink} onChange={(e) => setForm((p) => ({ ...p, figmaLink: e.target.value }))} className="input-field w-full" />
             </div>
           </div>
+
+          <div className="border-t border-phantom-border pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-white">Rounds</h4>
+              <button type="button" onClick={() => setForm((p) => ({ ...p, rounds: [...p.rounds, { name: '', date: '', description: '' }] }))} className="btn-secondary text-xs px-2 py-1">+ Add Round</button>
+            </div>
+            {form.rounds.length === 0 ? (
+              <p className="text-xs text-phantom-gray mb-2">No rounds defined</p>
+            ) : (
+              <div className="space-y-2 mb-3">
+                {form.rounds.map((round, i) => (
+                  <div key={i} className="flex gap-2 items-start p-2 rounded-lg bg-phantom-dark">
+                    <div className="flex-1 grid grid-cols-3 gap-2">
+                      <input
+                        placeholder="Round name"
+                        value={round.name}
+                        onChange={(e) => setForm((p) => { const r = [...p.rounds]; r[i] = { ...r[i], name: e.target.value }; return { ...p, rounds: r } })}
+                        className="input-field text-xs"
+                      />
+                      <input
+                        type="date"
+                        value={round.date}
+                        onChange={(e) => setForm((p) => { const r = [...p.rounds]; r[i] = { ...r[i], date: e.target.value }; return { ...p, rounds: r } })}
+                        className="input-field text-xs"
+                      />
+                      <input
+                        placeholder="Description"
+                        value={round.description}
+                        onChange={(e) => setForm((p) => { const r = [...p.rounds]; r[i] = { ...r[i], description: e.target.value }; return { ...p, rounds: r } })}
+                        className="input-field text-xs"
+                      />
+                    </div>
+                    <button type="button" onClick={() => setForm((p) => ({ ...p, rounds: p.rounds.filter((_, idx) => idx !== i) }))} className="text-red-400 hover:text-red-300 p-1">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-phantom-border pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-white">Group Meetings</h4>
+              <button type="button" onClick={() => setForm((p) => ({ ...p, meetings: [...p.meetings, { title: '', date: '', description: '', location: '' }] }))} className="btn-secondary text-xs px-2 py-1">+ Add Meeting</button>
+            </div>
+            {form.meetings.length === 0 ? (
+              <p className="text-xs text-phantom-gray mb-2">No meetings scheduled</p>
+            ) : (
+              <div className="space-y-2 mb-3">
+                {form.meetings.map((meeting, i) => (
+                  <div key={i} className="flex gap-2 items-start p-2 rounded-lg bg-phantom-dark">
+                    <div className="flex-1 grid grid-cols-2 gap-2">
+                      <input
+                        placeholder="Meeting title"
+                        value={meeting.title}
+                        onChange={(e) => setForm((p) => { const m = [...p.meetings]; m[i] = { ...m[i], title: e.target.value }; return { ...p, meetings: m } })}
+                        className="input-field text-xs"
+                      />
+                      <input
+                        type="date"
+                        value={meeting.date}
+                        onChange={(e) => setForm((p) => { const m = [...p.meetings]; m[i] = { ...m[i], date: e.target.value }; return { ...p, meetings: m } })}
+                        className="input-field text-xs"
+                      />
+                    </div>
+                    <div className="flex-1 grid grid-cols-2 gap-2">
+                      <input
+                        placeholder="Description"
+                        value={meeting.description}
+                        onChange={(e) => setForm((p) => { const m = [...p.meetings]; m[i] = { ...m[i], description: e.target.value }; return { ...p, meetings: m } })}
+                        className="input-field text-xs"
+                      />
+                      <input
+                        placeholder="Location"
+                        value={meeting.location}
+                        onChange={(e) => setForm((p) => { const m = [...p.meetings]; m[i] = { ...m[i], location: e.target.value }; return { ...p, meetings: m } })}
+                        className="input-field text-xs"
+                      />
+                    </div>
+                    <button type="button" onClick={() => setForm((p) => ({ ...p, meetings: p.meetings.filter((_, idx) => idx !== i) }))} className="text-red-400 hover:text-red-300 p-1">
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center justify-end gap-3">
             <button type="button" onClick={() => setEditModal(false)} className="btn-secondary">Cancel</button>
             <button type="submit" className="btn-primary">Save Changes</button>

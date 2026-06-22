@@ -1,4 +1,5 @@
 const Task = require('../models/Task');
+const { syncTaskEvents, removeTaskEvents } = require('../utils/calendarSync');
 
 const getTasks = async (req, res) => {
   try {
@@ -39,6 +40,7 @@ const createTask = async (req, res) => {
       ...req.body,
       createdBy: req.user._id,
     });
+    await syncTaskEvents(task);
     res.status(201).json(task);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -57,6 +59,7 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    await syncTaskEvents(task);
     res.json(task);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -89,6 +92,7 @@ const deleteTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    await removeTaskEvents(task._id);
     res.json({ message: 'Task removed' });
   } catch (error) {
     res.status(500).json({ message: error.message });

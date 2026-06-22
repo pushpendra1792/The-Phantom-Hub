@@ -35,6 +35,15 @@ const calendarEventSchema = new mongoose.Schema({
     type: String,
     default: '#a855f7',
   },
+  sourceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null,
+  },
+  sourceType: {
+    type: String,
+    enum: ['task', 'hackathon', 'round', 'meeting', null],
+    default: null,
+  },
 }, {
   timestamps: true,
 });

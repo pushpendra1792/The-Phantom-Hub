@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { getEvents, createEvent, updateEvent, deleteEvent } = require('../controllers/calendarController');
+const { getEvents, createEvent, updateEvent, deleteEvent, syncAllEvents } = require('../controllers/calendarController');
 const { protect } = require('../middleware/auth');
 
 router.route('/')
   .get(protect, getEvents)
   .post(protect, createEvent);
+
+router.post('/sync', protect, syncAllEvents);
 
 router.route('/:id')
   .put(protect, updateEvent)

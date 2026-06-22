@@ -60,4 +60,13 @@ const deleteEvent = async (req, res) => {
   }
 };
 
-module.exports = { getEvents, createEvent, updateEvent, deleteEvent };
+const syncAllEvents = async (req, res) => {
+  try {
+    const result = await require('../utils/calendarSync').syncAll(req.user._id);
+    res.json({ message: `Synced ${result.tasks} tasks and ${result.hackathons} hackathons to calendar`, ...result });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getEvents, createEvent, updateEvent, deleteEvent, syncAllEvents };

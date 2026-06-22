@@ -1,4 +1,5 @@
 const Hackathon = require('../models/Hackathon');
+const { syncHackathonEvents, removeHackathonEvents } = require('../utils/calendarSync');
 
 const getHackathons = async (req, res) => {
   try {
@@ -34,6 +35,7 @@ const createHackathon = async (req, res) => {
       ...req.body,
       createdBy: req.user._id,
     });
+    await syncHackathonEvents(hackathon);
     res.status(201).json(hackathon);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -52,6 +54,7 @@ const updateHackathon = async (req, res) => {
       return res.status(404).json({ message: 'Hackathon not found' });
     }
 
+    await syncHackathonEvents(hackathon);
     res.json(hackathon);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -70,6 +73,7 @@ const deleteHackathon = async (req, res) => {
       return res.status(404).json({ message: 'Hackathon not found' });
     }
 
+    await removeHackathonEvents(hackathon._id);
     res.json({ message: 'Hackathon archived' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -86,6 +90,12 @@ const archiveHackathon = async (req, res) => {
 
     hackathon.isArchived = !hackathon.isArchived;
     const updated = await hackathon.save();
+
+    if (hackathon.isArchived) {
+      await removeHackathonEvents(hackathon._id);
+    } else {
+      await syncHackathonEvents(hackathon);
+    }
 
     res.json(updated);
   } catch (error) {

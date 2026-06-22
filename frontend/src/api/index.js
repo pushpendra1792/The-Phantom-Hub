@@ -38,6 +38,7 @@ export const getEvents = (params) => API.get('/calendar', { params })
 export const createEvent = (data) => API.post('/calendar', data)
 export const updateEvent = (id, data) => API.put(`/calendar/${id}`, data)
 export const deleteEvent = (id) => API.delete(`/calendar/${id}`)
+export const syncCalendar = () => API.post('/calendar/sync')
 
 export const getNotes = () => API.get('/notes')
 export const getNotesByHackathon = (hackathonId) => API.get(`/notes/hackathon/${hackathonId}`)
