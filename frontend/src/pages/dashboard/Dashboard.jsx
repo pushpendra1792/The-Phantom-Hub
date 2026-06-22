@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiTarget, FiClock, FiCheckSquare, FiTrendingUp, FiCalendar, FiUsers, FiFileText, FiActivity, FiGrid } from 'react-icons/fi'
-import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
-import { getDashboardStats } from '../../api'
+import { useDashboard } from '../../hooks'
 import DoughnutChart from '../../components/charts/DoughnutChart'
 import StatCard from '../../components/ui/StatCard'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -27,22 +25,9 @@ const quickActions = [
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { data: stats, isLoading } = useDashboard()
 
-  const fetchStats = () => {
-    setLoading(true)
-    getDashboardStats()
-      .then((res) => setStats(res.data))
-      .catch(() => toast.error('Failed to load dashboard data'))
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchStats()
-  }, [])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading dashboard..." />

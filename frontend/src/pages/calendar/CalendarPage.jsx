@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FiPlus, FiTrash2, FiEdit2, FiCalendar, FiClock, FiFilter, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import { getEvents, createEvent, updateEvent, deleteEvent, getHackathons } from '../../api'
+import { useEvents, useHackathons, keys } from '../../hooks'
 import CalendarView from '../../components/calendar/CalendarView'
 import Modal from '../../components/ui/Modal'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -47,41 +49,17 @@ function toLocalDatetimeString(date) {
 }
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState([])
-  const [hackathons, setHackathons] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const queryClient = useQueryClient()
   const [typeFilter, setTypeFilter] = useState('All')
+  const params = typeFilter !== 'All' ? { type: typeFilter.toLowerCase().slice(0, -1) } : {}
+  const { data: events = [], isLoading, isError } = useEvents(params)
+  const { data: hackathons = [] } = useHackathons()
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [detailModal, setDetailModal] = useState(false)
   const [formModal, setFormModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [form, setForm] = useState(initialForm)
   const [submitting, setSubmitting] = useState(false)
-
-  const fetchEvents = () => {
-    setLoading(true)
-    setError(null)
-    const params = {}
-    if (typeFilter !== 'All') params.type = typeFilter.toLowerCase().slice(0, -1)
-    Promise.all([
-      getEvents(params),
-      getHackathons(),
-    ])
-      .then(([eventsRes, hackRes]) => {
-        setEvents(eventsRes.data)
-        setHackathons(hackRes.data)
-      })
-      .catch(() => {
-        setError('Failed to load events')
-        toast.error('Failed to load calendar events')
-      })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchEvents()
-  }, [typeFilter])
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event)
@@ -144,14 +122,9 @@ export default function CalendarPage() {
       : createEvent(payload)
 
     promise
-      .then((res) => {
-        if (editingEvent) {
-          setEvents((prev) => prev.map((e) => (e._id === editingEvent._id ? { ...e, ...res.data } : e)))
-          toast.success('Event updated')
-        } else {
-          setEvents((prev) => [...prev, res.data])
-          toast.success('Event created')
-        }
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: keys.events(params) })
+        toast.success(editingEvent ? 'Event updated' : 'Event created')
         setFormModal(false)
         setEditingEvent(null)
         setForm(initialForm)
@@ -164,7 +137,7 @@ export default function CalendarPage() {
     if (!window.confirm('Delete this event?')) return
     deleteEvent(id)
       .then(() => {
-        setEvents((prev) => prev.filter((e) => e._id !== id))
+        queryClient.invalidateQueries({ queryKey: keys.events(params) })
         setDetailModal(false)
         setSelectedEvent(null)
         toast.success('Event deleted')
@@ -172,7 +145,7 @@ export default function CalendarPage() {
       .catch(() => toast.error('Failed to delete event'))
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading calendar..." />
@@ -180,11 +153,11 @@ export default function CalendarPage() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchEvents} className="btn-primary">Retry</button>
+        <p className="text-red-400">Failed to load events</p>
+        <button onClick={() => queryClient.invalidateQueries({ queryKey: keys.events(params) })} className="btn-primary">Retry</button>
       </div>
     )
   }

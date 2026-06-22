@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiFileText } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import { getNotes, createNote, updateNote, deleteNote, getHackathons } from '../../api'
+import { useNotes, useHackathons, keys } from '../../hooks'
 import Modal from '../../components/ui/Modal'
 import Badge from '../../components/ui/Badge'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -35,10 +37,9 @@ const initialForm = {
 }
 
 export default function Notes() {
-  const [notes, setNotes] = useState([])
-  const [hackathons, setHackathons] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const queryClient = useQueryClient()
+  const { data: notes = [], isLoading, isError } = useNotes()
+  const { data: hackathons = [] } = useHackathons()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
   const [hackathonFilter, setHackathonFilter] = useState('')
@@ -49,25 +50,6 @@ export default function Notes() {
   const [form, setForm] = useState(initialForm)
   const [submitting, setSubmitting] = useState(false)
   const [tagInput, setTagInput] = useState('')
-
-  const fetchNotes = () => {
-    setLoading(true)
-    setError(null)
-    Promise.all([getNotes(), getHackathons()])
-      .then(([notesRes, hackRes]) => {
-        setNotes(notesRes.data)
-        setHackathons(hackRes.data)
-      })
-      .catch(() => {
-        setError('Failed to load notes')
-        toast.error('Failed to load notes')
-      })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchNotes()
-  }, [])
 
   const filtered = notes.filter((n) => {
     const matchesSearch = n.title?.toLowerCase().includes(search.toLowerCase()) || n.content?.toLowerCase().includes(search.toLowerCase())
@@ -135,15 +117,9 @@ export default function Notes() {
     const promise = editingNote ? updateNote(editingNote._id, payload) : createNote(payload)
 
     promise
-      .then((res) => {
-        if (editingNote) {
-          setNotes((prev) => prev.map((n) => (n._id === editingNote._id ? { ...n, ...res.data } : n)))
-          if (selectedNote?._id === editingNote._id) setSelectedNote((prev) => prev ? { ...prev, ...res.data } : prev)
-          toast.success('Note updated')
-        } else {
-          setNotes((prev) => [...prev, res.data])
-          toast.success('Note created')
-        }
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: keys.notes })
+        toast.success(editingNote ? 'Note updated' : 'Note created')
         setFormModal(false)
         setEditingNote(null)
         setForm(initialForm)
@@ -156,7 +132,7 @@ export default function Notes() {
     if (!window.confirm('Delete this note?')) return
     deleteNote(id)
       .then(() => {
-        setNotes((prev) => prev.filter((n) => n._id !== id))
+        queryClient.invalidateQueries({ queryKey: keys.notes })
         setDetailOpen(false)
         setSelectedNote(null)
         toast.success('Note deleted')
@@ -164,7 +140,7 @@ export default function Notes() {
       .catch(() => toast.error('Failed to delete note'))
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading notes..." />
@@ -172,11 +148,11 @@ export default function Notes() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchNotes} className="btn-primary">Retry</button>
+        <p className="text-red-400">Failed to load notes</p>
+        <button onClick={() => queryClient.invalidateQueries({ queryKey: keys.notes })} className="btn-primary">Retry</button>
       </div>
     )
   }

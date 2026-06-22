@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FiSearch, FiPlus, FiTrash2, FiExternalLink, FiGrid } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { format, differenceInDays } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import { getHackathons, createHackathon, archiveHackathon } from '../../api'
+import { useHackathons, keys } from '../../hooks'
 import Modal from '../../components/ui/Modal'
 import StatusBadge from '../../components/ui/StatusBadge'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -38,30 +40,13 @@ const initialForm = {
 }
 
 export default function Hackathons() {
-  const [hackathons, setHackathons] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const queryClient = useQueryClient()
+  const { data: hackathons = [], isLoading, isError, error } = useHackathons()
   const [search, setSearch] = useState('')
   const [statusTab, setStatusTab] = useState('All')
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [submitting, setSubmitting] = useState(false)
-
-  const fetchHackathons = () => {
-    setLoading(true)
-    setError(null)
-    getHackathons()
-      .then((res) => setHackathons(res.data))
-      .catch(() => {
-        setError('Failed to load hackathons')
-        toast.error('Failed to load hackathons')
-      })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchHackathons()
-  }, [])
 
   const filtered = hackathons.filter((h) => {
     const matchesSearch = h.name?.toLowerCase().includes(search.toLowerCase())
@@ -81,8 +66,8 @@ export default function Hackathons() {
     }
     setSubmitting(true)
     createHackathon(form)
-      .then((res) => {
-        setHackathons((prev) => [...prev, res.data])
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: keys.hackathons })
         toast.success('Hackathon created')
         setModalOpen(false)
         setForm(initialForm)
@@ -95,13 +80,13 @@ export default function Hackathons() {
     if (!window.confirm('Archive this hackathon?')) return
     archiveHackathon(id)
       .then(() => {
-        setHackathons((prev) => prev.filter((h) => h._id !== id))
+        queryClient.invalidateQueries({ queryKey: keys.hackathons })
         toast.success('Hackathon archived')
       })
       .catch(() => toast.error('Failed to archive hackathon'))
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading hackathons..." />
@@ -109,11 +94,11 @@ export default function Hackathons() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchHackathons} className="btn-primary">Retry</button>
+        <p className="text-red-400">{error?.message || 'Failed to load hackathons'}</p>
+        <button onClick={() => queryClient.invalidateQueries({ queryKey: keys.hackathons })} className="btn-primary">Retry</button>
       </div>
     )
   }

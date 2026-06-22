@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FiSearch, FiBell, FiUser, FiLogOut, FiMenu } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext'
-import { getNotifications } from '../../api'
+import { useNotifications } from '../../hooks'
 
 const pageTitles = {
   '/': 'Dashboard',
@@ -22,23 +22,15 @@ export default function Navbar({ onMenuToggle }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
-  const [unreadCount, setUnreadCount] = useState(0)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const { data: notifications = [] } = useNotifications()
+  const unreadCount = notifications.filter((n) => !n.isRead).length
 
   const currentTitle = Object.entries(pageTitles).find(([path]) =>
     location.pathname === path ? true :
     path !== '/' && location.pathname.startsWith(path)
   )?.[1] || 'Dashboard'
-
-  useEffect(() => {
-    getNotifications()
-      .then((res) => {
-        const unread = res.data.filter((n) => !n.read).length
-        setUnreadCount(unread)
-      })
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     function handleClickOutside(e) {

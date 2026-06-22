@@ -1,8 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { FiHome, FiGrid, FiCheckSquare, FiFolder, FiCalendar, FiUsers, FiFileText, FiBell, FiBarChart2, FiUser, FiLogOut, FiX } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext'
-import { useState, useEffect } from 'react'
-import { getNotifications } from '../../api'
+import { useNotifications } from '../../hooks'
 
 const links = [
   { to: '/', icon: FiHome, label: 'Dashboard' },
@@ -18,16 +17,8 @@ const links = [
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    getNotifications()
-      .then((res) => {
-        const unread = res.data.filter((n) => !n.read).length
-        setUnreadCount(unread)
-      })
-      .catch(() => {})
-  }, [])
+  const { data: notifications = [] } = useNotifications()
+  const unreadCount = notifications.filter((n) => !n.isRead).length
 
   return (
     <aside

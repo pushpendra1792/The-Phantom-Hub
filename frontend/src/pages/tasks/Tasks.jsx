@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FiSearch, FiPlus, FiTrash2, FiEdit2, FiMessageSquare, FiPaperclip, FiUser, FiClock, FiFilter, FiChevronLeft, FiChevronRight, FiList, FiGrid } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { format, formatDistanceToNow, isBefore } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import { getTasks, getTask, createTask, updateTask, updateTaskStatus, deleteTask, addTaskComment, addTaskAttachment, getHackathons, getTeamMembers } from '../../api'
+import { useTasks, useHackathons, useTeam, keys } from '../../hooks'
 import Modal from '../../components/ui/Modal'
 import StatusBadge from '../../components/ui/StatusBadge'
 import PriorityIndicator from '../../components/ui/PriorityIndicator'
@@ -49,13 +51,13 @@ const initialForm = {
 }
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState([])
-  const [hackathons, setHackathons] = useState([])
-  const [teamMembers, setTeamMembers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
+  const queryClient = useQueryClient()
   const [hackathonFilter, setHackathonFilter] = useState('')
+  const filters = hackathonFilter ? { hackathon: hackathonFilter } : {}
+  const { data: tasks = [], isLoading, isError } = useTasks(filters)
+  const { data: hackathons = [] } = useHackathons()
+  const { data: teamMembers = [] } = useTeam()
+  const [search, setSearch] = useState('')
   const [assigneeFilter, setAssigneeFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('All')
   const [viewMode, setViewMode] = useState('board')
@@ -68,32 +70,6 @@ export default function Tasks() {
   const [form, setForm] = useState(initialForm)
   const [submitting, setSubmitting] = useState(false)
   const [commentText, setCommentText] = useState('')
-
-  const fetchData = () => {
-    setLoading(true)
-    setError(null)
-    const params = {}
-    if (hackathonFilter) params.hackathon = hackathonFilter
-    Promise.all([
-      getTasks(params),
-      getHackathons(),
-      getTeamMembers(),
-    ])
-      .then(([tasksRes, hackRes, teamRes]) => {
-        setTasks(tasksRes.data)
-        setHackathons(hackRes.data)
-        setTeamMembers(teamRes.data)
-      })
-      .catch(() => {
-        setError('Failed to load data')
-        toast.error('Failed to load tasks')
-      })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchData()
-  }, [hackathonFilter])
 
   const filtered = tasks.filter((t) => {
     const matchesSearch = t.title?.toLowerCase().includes(search.toLowerCase())
@@ -146,7 +122,7 @@ export default function Tasks() {
   const handleMoveStatus = (taskId, newStatus) => {
     updateTaskStatus(taskId, { status: newStatus })
       .then(() => {
-        setTasks((prev) => prev.map((t) => (t._id === taskId ? { ...t, status: newStatus } : t)))
+        queryClient.invalidateQueries({ queryKey: keys.tasks(filters) })
         toast.success('Task moved')
       })
       .catch(() => toast.error('Failed to move task'))
@@ -220,15 +196,9 @@ export default function Tasks() {
       : createTask(payload)
 
     promise
-      .then((res) => {
-        if (editingTask) {
-          setTasks((prev) => prev.map((t) => (t._id === editingTask._id ? { ...t, ...res.data } : t)))
-          if (selectedTask?._id === editingTask._id) setSelectedTask((prev) => prev ? { ...prev, ...res.data } : prev)
-          toast.success('Task updated')
-        } else {
-          setTasks((prev) => [...prev, res.data])
-          toast.success('Task created')
-        }
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: keys.tasks(filters) })
+        toast.success(editingTask ? 'Task updated' : 'Task created')
         setFormModal(false)
         setForm(initialForm)
         setEditingTask(null)
@@ -241,7 +211,7 @@ export default function Tasks() {
     if (!window.confirm('Delete this task?')) return
     deleteTask(id)
       .then(() => {
-        setTasks((prev) => prev.filter((t) => t._id !== id))
+        queryClient.invalidateQueries({ queryKey: keys.tasks(filters) })
         setDetailModal(false)
         setSelectedTask(null)
         toast.success('Task deleted')
@@ -286,7 +256,7 @@ export default function Tasks() {
     return <span className="ml-1">{sortDir === 'asc' ? '\u25B2' : '\u25BC'}</span>
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading tasks..." />
@@ -294,11 +264,11 @@ export default function Tasks() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchData} className="btn-primary">Retry</button>
+        <p className="text-red-400">Failed to load tasks</p>
+        <button onClick={() => queryClient.invalidateQueries({ queryKey: keys.tasks(filters) })} className="btn-primary">Retry</button>
       </div>
     )
   }

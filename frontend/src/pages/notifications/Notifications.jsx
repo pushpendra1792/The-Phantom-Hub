@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
 import { FiBell, FiCheck, FiCheckSquare, FiClock, FiMessageSquare, FiUpload, FiGrid, FiTrash2, FiCheckCircle } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
-import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../api'
+import { useQueryClient } from '@tanstack/react-query'
+import { markAsRead, markAllAsRead, deleteNotification } from '../../api'
+import { useNotifications, keys } from '../../hooks'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import EmptyState from '../../components/ui/EmptyState'
 
@@ -16,30 +17,13 @@ const NOTIFICATION_ICONS = {
 }
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const fetchNotifications = () => {
-    setLoading(true)
-    setError(null)
-    getNotifications()
-      .then((res) => setNotifications(res.data))
-      .catch(() => {
-        setError('Failed to load notifications')
-        toast.error('Failed to load notifications')
-      })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchNotifications()
-  }, [])
+  const queryClient = useQueryClient()
+  const { data: notifications = [], isLoading, isError } = useNotifications()
 
   const handleMarkAsRead = (id) => {
     markAsRead(id)
       .then(() => {
-        setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)))
+        queryClient.invalidateQueries({ queryKey: keys.notifications })
         toast.success('Marked as read')
       })
       .catch(() => toast.error('Failed to mark as read'))
@@ -48,7 +32,7 @@ export default function Notifications() {
   const handleMarkAllAsRead = () => {
     markAllAsRead()
       .then(() => {
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+        queryClient.invalidateQueries({ queryKey: keys.notifications })
         toast.success('All notifications marked as read')
       })
       .catch(() => toast.error('Failed to mark all as read'))
@@ -58,7 +42,7 @@ export default function Notifications() {
     if (!window.confirm('Delete this notification?')) return
     deleteNotification(id)
       .then(() => {
-        setNotifications((prev) => prev.filter((n) => n._id !== id))
+        queryClient.invalidateQueries({ queryKey: keys.notifications })
         toast.success('Notification deleted')
       })
       .catch(() => toast.error('Failed to delete notification'))
@@ -68,7 +52,7 @@ export default function Notifications() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading notifications..." />
@@ -76,11 +60,11 @@ export default function Notifications() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchNotifications} className="btn-primary">Retry</button>
+        <p className="text-red-400">Failed to load notifications</p>
+        <button onClick={() => queryClient.invalidateQueries({ queryKey: keys.notifications })} className="btn-primary">Retry</button>
       </div>
     )
   }

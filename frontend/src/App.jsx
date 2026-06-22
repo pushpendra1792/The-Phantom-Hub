@@ -11,7 +11,7 @@ import CalendarPage from './pages/calendar/CalendarPage'
 import Team from './pages/team/Team'
 import Notes from './pages/notes/Notes'
 import Notifications from './pages/notifications/Notifications'
-// import Analytics from './pages/analytics/Analytics'
+import Analytics from './pages/analytics/Analytics'
 import Profile from './pages/auth/Profile'
 import MainLayout from './components/layout/MainLayout'
 
@@ -43,7 +43,7 @@ function App() {
         <Route path="team" element={<Team />} />
         <Route path="notes" element={<Notes />} />
         <Route path="notifications" element={<Notifications />} />
-        {/* <Route path="analytics" element={<Analytics />} /> */}
+        <Route path="analytics" element={<Analytics />} />
         <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />

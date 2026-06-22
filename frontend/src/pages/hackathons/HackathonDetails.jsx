@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   getHackathon, updateHackathon, deleteHackathon,
   getIdeas, createIdea, voteIdea, selectIdea, addComment,
@@ -15,6 +16,7 @@ import {
   getNotesByHackathon, createNote, deleteNote,
   getEvents, getTeamMembers,
 } from '../../api'
+import { useHackathon, useTeam, keys } from '../../hooks'
 import Modal from '../../components/ui/Modal'
 import StatusBadge from '../../components/ui/StatusBadge'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -82,13 +84,13 @@ export default function HackathonDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [hackathon, setHackathon] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const { data: hackathon, isLoading } = useHackathon(id)
+  const { data: team = [] } = useTeam()
   const [activeTab, setActiveTab] = useState('Overview')
   const [editModal, setEditModal] = useState(false)
   const [ideas, setIdeas] = useState([])
   const [tasks, setTasks] = useState([])
-  const [team, setTeam] = useState([])
   const [resources, setResources] = useState([])
   const [notes, setNotes] = useState([])
   const [events, setEvents] = useState([])
@@ -114,25 +116,18 @@ export default function HackathonDetails() {
     title: '', description: '', researchLinks: [], references: [], notes: '',
   })
 
-  const fetchHackathon = useCallback(() => {
-    setLoading(true)
-    getHackathon(id)
-      .then((res) => {
-        setHackathon(res.data)
-        const h = res.data
-        setForm({
-          name: h.name || '', organizer: h.organizer || '', website: h.website || '',
-          description: h.description || '', theme: h.theme || '', status: h.status || 'planning',
-          registrationDeadline: h.registrationDeadline ? h.registrationDeadline.slice(0, 10) : '',
-          startDate: h.startDate ? h.startDate.slice(0, 10) : '',
-          endDate: h.endDate ? h.endDate.slice(0, 10) : '',
-          submissionDeadline: h.submissionDeadline ? h.submissionDeadline.slice(0, 10) : '',
-          githubRepo: h.githubRepo || '', figmaLink: h.figmaLink || '',
-        })
-      })
-      .catch(() => toast.error('Failed to load hackathon'))
-      .finally(() => setLoading(false))
-  }, [id])
+  const initForm = useCallback((h) => {
+    if (!h) return
+    setForm({
+      name: h.name || '', organizer: h.organizer || '', website: h.website || '',
+      description: h.description || '', theme: h.theme || '', status: h.status || 'planning',
+      registrationDeadline: h.registrationDeadline ? h.registrationDeadline.slice(0, 10) : '',
+      startDate: h.startDate ? h.startDate.slice(0, 10) : '',
+      endDate: h.endDate ? h.endDate.slice(0, 10) : '',
+      submissionDeadline: h.submissionDeadline ? h.submissionDeadline.slice(0, 10) : '',
+      githubRepo: h.githubRepo || '', figmaLink: h.figmaLink || '',
+    })
+  }, [])
 
   const fetchIdeas = useCallback(() => {
     getIdeas(id).then((res) => setIdeas(res.data)).catch(() => {})
@@ -154,25 +149,24 @@ export default function HackathonDetails() {
     getEvents({ hackathon: id }).then((res) => setEvents(res.data)).catch(() => {})
   }, [id])
 
-  const fetchTeam = useCallback(() => {
-    getTeamMembers().then((res) => setTeam(res.data)).catch(() => {})
-  }, [])
-
-  useEffect(() => { fetchHackathon() }, [fetchHackathon])
+  useEffect(() => {
+    if (hackathon) initForm(hackathon)
+  }, [hackathon, initForm])
 
   useEffect(() => {
     if (activeTab === 'Ideas') fetchIdeas()
-    else if (activeTab === 'Tasks') { fetchTasks(); fetchTeam() }
+    else if (activeTab === 'Tasks') fetchTasks()
     else if (activeTab === 'Resources') fetchResources()
     else if (activeTab === 'Notes') fetchNotes()
     else if (activeTab === 'Calendar') fetchEvents()
-  }, [activeTab, fetchIdeas, fetchTasks, fetchResources, fetchNotes, fetchEvents, fetchTeam])
+  }, [activeTab, fetchIdeas, fetchTasks, fetchResources, fetchNotes, fetchEvents])
 
   const handleEdit = (e) => {
     e.preventDefault()
     updateHackathon(id, form)
-      .then((res) => {
-        setHackathon(res.data)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: keys.hackathon(id) })
+        queryClient.invalidateQueries({ queryKey: keys.hackathons })
         toast.success('Hackathon updated')
         setEditModal(false)
       })
@@ -183,6 +177,7 @@ export default function HackathonDetails() {
     if (!window.confirm('Delete this hackathon permanently?')) return
     deleteHackathon(id)
       .then(() => {
+        queryClient.invalidateQueries({ queryKey: keys.hackathons })
         toast.success('Hackathon deleted')
         navigate('/hackathons')
       })
@@ -334,7 +329,7 @@ export default function HackathonDetails() {
       .catch(() => toast.error('Failed to delete note'))
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading hackathon..." />

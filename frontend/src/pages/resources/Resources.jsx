@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { FiSearch, FiPlus, FiTrash2, FiDownload, FiUpload, FiFile, FiMonitor, FiFileText, FiLayout, FiImage, FiPackage, FiBookmark, FiGrid } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
 import { getResources, getResourcesByHackathon, uploadResource, deleteResource, getHackathons } from '../../api'
+import { useResources, useHackathons, keys } from '../../hooks'
 import Modal from '../../components/ui/Modal'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import EmptyState from '../../components/ui/EmptyState'
@@ -79,44 +81,17 @@ function detectTypeFromName(name) {
 }
 
 export default function Resources() {
-  const [resources, setResources] = useState([])
-  const [hackathons, setHackathons] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
+  const queryClient = useQueryClient()
   const [hackathonFilter, setHackathonFilter] = useState('')
+  const { data: resources = [], isLoading, isError } = useResources(hackathonFilter || undefined)
+  const { data: hackathons = [] } = useHackathons()
+  const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
   const [uploadModal, setUploadModal] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', type: 'Other', hackathon: '' })
   const [uploadFile, setUploadFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const fileInputRef = useRef(null)
-
-  const fetchResources = () => {
-    setLoading(true)
-    setError(null)
-    const promise = hackathonFilter
-      ? getResourcesByHackathon(hackathonFilter)
-      : getResources()
-
-    Promise.all([
-      promise,
-      getHackathons(),
-    ])
-      .then(([res, hackRes]) => {
-        setResources(res.data)
-        setHackathons(hackRes.data)
-      })
-      .catch(() => {
-        setError('Failed to load resources')
-        toast.error('Failed to load resources')
-      })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchResources()
-  }, [hackathonFilter])
 
   const filtered = resources.filter((r) => {
     const matchesSearch = r.name?.toLowerCase().includes(search.toLowerCase()) || r.fileName?.toLowerCase().includes(search.toLowerCase())
@@ -158,8 +133,8 @@ export default function Resources() {
     if (form.hackathon) formData.append('hackathon', form.hackathon)
 
     uploadResource(formData)
-      .then((res) => {
-        setResources((prev) => [res.data, ...prev])
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: keys.resources(hackathonFilter || undefined) })
         toast.success('Resource uploaded')
         setUploadModal(false)
         setUploadFile(null)
@@ -174,13 +149,13 @@ export default function Resources() {
     if (!window.confirm('Delete this resource?')) return
     deleteResource(id)
       .then(() => {
-        setResources((prev) => prev.filter((r) => r._id !== id))
+        queryClient.invalidateQueries({ queryKey: keys.resources(hackathonFilter || undefined) })
         toast.success('Resource deleted')
       })
       .catch(() => toast.error('Failed to delete resource'))
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading resources..." />
@@ -188,11 +163,11 @@ export default function Resources() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchResources} className="btn-primary">Retry</button>
+        <p className="text-red-400">Failed to load resources</p>
+        <button onClick={() => queryClient.invalidateQueries({ queryKey: keys.resources(hackathonFilter || undefined) })} className="btn-primary">Retry</button>
       </div>
     )
   }

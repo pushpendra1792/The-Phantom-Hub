@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FiSearch, FiUsers, FiGithub, FiLinkedin, FiCheckCircle, FiClock, FiActivity } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
 import { getTeamMembers, getTasks, getHackathons } from '../../api'
+import { useTeam } from '../../hooks'
 import Modal from '../../components/ui/Modal'
 import StatusBadge from '../../components/ui/StatusBadge'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -10,30 +11,12 @@ import EmptyState from '../../components/ui/EmptyState'
 import Badge from '../../components/ui/Badge'
 
 export default function Team() {
-  const [members, setMembers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const { data: members = [], isLoading, isError } = useTeam()
   const [search, setSearch] = useState('')
   const [selectedMember, setSelectedMember] = useState(null)
   const [detailData, setDetailData] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
-
-  const fetchMembers = () => {
-    setLoading(true)
-    setError(null)
-    getTeamMembers()
-      .then((res) => setMembers(res.data))
-      .catch(() => {
-        setError('Failed to load team members')
-        toast.error('Failed to load team members')
-      })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    fetchMembers()
-  }, [])
 
   const filtered = members.filter((m) =>
     m.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -76,7 +59,7 @@ export default function Team() {
     return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(member.name || '?')}&backgroundColor=7c3aed&textColor=ffffff`
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading team members..." />
@@ -84,11 +67,11 @@ export default function Team() {
     )
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchMembers} className="btn-primary">Retry</button>
+        <p className="text-red-400">Failed to load team members</p>
+        <button onClick={() => window.location.reload()} className="btn-primary">Retry</button>
       </div>
     )
   }
