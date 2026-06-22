@@ -7,7 +7,7 @@ const getDashboardStats = async (req, res) => {
   try {
     const activeHackathons = await Hackathon.countDocuments({
       isArchived: false,
-      status: { $nin: ['Completed', 'Won'] },
+      status: { $nin: ['completed', 'won'] },
     });
 
     const now = new Date();
@@ -61,7 +61,7 @@ const getDashboardStats = async (req, res) => {
 const getAnalytics = async (req, res) => {
   try {
     const totalHackathons = await Hackathon.countDocuments();
-    const hackathonsWon = await Hackathon.countDocuments({ status: 'Won' });
+    const hackathonsWon = await Hackathon.countDocuments({ status: 'won' });
     const winRate = totalHackathons > 0 ? (hackathonsWon / totalHackathons) * 100 : 0;
 
     const totalTasks = await Task.countDocuments();

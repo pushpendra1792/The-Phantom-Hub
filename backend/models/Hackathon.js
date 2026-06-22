@@ -23,8 +23,8 @@ const hackathonSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Planning', 'Registered', 'Building', 'Submitted', 'Completed', 'Won'],
-    default: 'Planning',
+    enum: ['planning', 'registered', 'building', 'submitted', 'completed', 'won'],
+    default: 'planning',
   },
   githubRepo: {
     type: String,

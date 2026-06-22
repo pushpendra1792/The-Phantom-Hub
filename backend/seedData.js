@@ -78,7 +78,7 @@ const seed = async () => {
 
   const codestorm = await Hackathon.create({
     name: 'CodeStorm 2024',
-    status: 'Building',
+    status: 'building',
     organizer: 'DevPost',
     website: 'https://codestorm.devpost.com',
     registrationDeadline: new Date('2024-02-01'),
@@ -94,7 +94,7 @@ const seed = async () => {
 
   const hackmit = await Hackathon.create({
     name: 'HackMIT 2024',
-    status: 'Planning',
+    status: 'planning',
     organizer: 'MIT',
     website: 'https://hackmit.org',
     registrationDeadline: new Date('2024-04-15'),
@@ -110,7 +110,7 @@ const seed = async () => {
 
   const devhacks = await Hackathon.create({
     name: 'DevHacks 2024',
-    status: 'Submitted',
+    status: 'submitted',
     organizer: 'DevHacks',
     website: 'https://devhacks.io',
     registrationDeadline: new Date('2024-01-10'),

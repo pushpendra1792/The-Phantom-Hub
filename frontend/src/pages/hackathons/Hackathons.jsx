@@ -13,7 +13,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import ProgressBar from '../../components/ui/ProgressBar'
 import CountdownTimer from '../../components/ui/CountdownTimer'
 
-const STATUS_TABS = ['All', 'Planning', 'Registered', 'Building', 'Submitted', 'Completed', 'Won']
+const STATUS_TABS = ['All', 'planning', 'registered', 'building', 'submitted', 'completed', 'won']
 
 function calcDateProgress(start, end) {
   const s = new Date(start).getTime()
@@ -50,7 +50,7 @@ export default function Hackathons() {
 
   const filtered = hackathons.filter((h) => {
     const matchesSearch = h.name?.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusTab === 'All' || h.status === statusTab.toLowerCase()
+    const matchesStatus = statusTab === 'All' || h.status === statusTab
     return matchesSearch && matchesStatus
   })
 
@@ -128,18 +128,18 @@ export default function Hackathons() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setStatusTab(tab)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                statusTab === tab
-                  ? 'bg-phantom-purple text-white'
-                  : 'bg-phantom-dark text-phantom-gray hover:text-white hover:bg-phantom-card'
-              }`}
-            >
-              {tab}
-            </button>
+                  {STATUS_TABS.map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setStatusTab(tab)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        statusTab === tab
+                          ? 'bg-phantom-purple text-white'
+                          : 'bg-phantom-dark text-phantom-gray hover:text-white hover:bg-phantom-card'
+                      }`}
+                    >
+                      {tab === 'All' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </button>
           ))}
         </div>
       </div>
