@@ -13,6 +13,13 @@ const Note = require('./models/Note');
 const Notification = require('./models/Notification');
 
 const seed = async () => {
+  if (!process.argv.includes('--force')) {
+    console.log('WARNING: This will DELETE ALL existing data and replace it with demo data.');
+    console.log('Run with --force flag to confirm: node seedData.js --force');
+    await mongoose.connection.close();
+    process.exit(0);
+  }
+
   await connectDB();
 
   await Promise.all([
