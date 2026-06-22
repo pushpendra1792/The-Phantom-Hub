@@ -44,15 +44,9 @@ app.use('/api/users', userRoutes);
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-    }
-  });
-}
+app.get('/', (req, res) => {
+  res.json({ message: 'Phantoms Hub API', status: 'running' });
+});
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);

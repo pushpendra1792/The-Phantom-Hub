@@ -11,7 +11,8 @@ export function SocketProvider({ children }) {
   const [onlineUsers, setOnlineUsers] = useState([])
 
   useEffect(() => {
-    const socketInstance = io('/', {
+    const serverUrl = import.meta.env.VITE_API_URL || '/'
+    const socketInstance = io(serverUrl, {
       withCredentials: true
     })
 
